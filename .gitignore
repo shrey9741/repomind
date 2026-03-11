@@ -1,0 +1,32 @@
+# Virtual environment
+venv/
+
+# Environment variables (contains API keys!)
+.env
+
+# Cloned repos (can be huge)
+data/
+
+# Vector DB files
+vector_db/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+tests/
+
+# Notebooks
+notebooks/
