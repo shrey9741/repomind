@@ -1,5 +1,7 @@
 # 🧠 RepoMind — Chat with Any GitHub Repository
 
+[Live Demo](https://repomind-clbdwmy4qxnmlj2emlqs3d.streamlit.app/)
+
 <div align="center">
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python)
@@ -12,7 +14,7 @@
 
 **An AI-powered Agentic RAG system that lets you chat with any GitHub repository in natural language.**
 
-[Live Demo](https://repomind-clbdwmy4qxnmlj2emlqs3d.streamlit.app/) · [Report Bug](https://github.com/shrey9741/repomind/issues) · [Request Feature](https://github.com/shrey9741/repomind/issues)
+ · [Report Bug](https://github.com/shrey9741/repomind/issues) · [Request Feature](https://github.com/shrey9741/repomind/issues)
 
 </div>
 
