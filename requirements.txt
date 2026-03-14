@@ -11,8 +11,10 @@ langchain-community
 langchain-core
 langgraph
 
-# LLM - Ollama
+# LLM
 langchain-ollama
+langchain-groq
+groq
 ollama
 
 # Embeddings
