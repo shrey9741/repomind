@@ -1,8 +1,8 @@
-import ollama
+import os
 from typing import List, Dict, Optional
-from app.config import OLLAMA_MODEL, OLLAMA_FALLBACK_MODEL
+from app.config import GROQ_API_KEY
 from app.retrieval.retriever import retrieve_and_format
-
+from langchain_groq import ChatGroq
 
 # ─── System Prompt ────────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """You are RepoMind, an expert AI assistant that helps developers understand codebases.
@@ -24,35 +24,19 @@ Be concise but thorough. Use markdown formatting for clarity."""
 
 
 # ─── Core LLM Call ───────────────────────────────────────────────────────────
-def call_ollama(prompt: str, model: str = None) -> str:
-    """
-    Send a prompt to Ollama and return the response.
-    Falls back to mistral if deepseek-coder fails.
-    """
-    model = model or OLLAMA_MODEL
-
-    try:
-        response = ollama.chat(
-            model=model,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user",   "content": prompt},
-            ]
-        )
-        return response["message"]["content"]
-
-    except Exception as e:
-        print(f"⚠️ {model} failed: {e}")
-        print(f"🔄 Falling back to {OLLAMA_FALLBACK_MODEL}...")
-
-        response = ollama.chat(
-            model=OLLAMA_FALLBACK_MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user",   "content": prompt},
-            ]
-        )
-        return response["message"]["content"]
+def call_groq(prompt: str) -> str:
+    """Send a prompt to Groq and return the response."""
+    llm = ChatGroq(
+        model="llama-3.1-8b-instant",
+        api_key=GROQ_API_KEY,
+        temperature=0.1,
+    )
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": prompt},
+    ]
+    response = llm.invoke(messages)
+    return response.content
 
 
 # ─── RAG Query ────────────────────────────────────────────────────────────────
@@ -64,16 +48,9 @@ def query_repo(
     chunk_type_filter: Optional[str] = None,
     model: str = None,
 ) -> Dict:
-    """
-    Full RAG pipeline:
-    1. Retrieve relevant chunks from vector store
-    2. Format them as context
-    3. Send to LLM with the question
-    4. Return answer + sources
-    """
+    """Full RAG pipeline using Groq."""
     print(f"🔍 Retrieving context for: '{question}'")
 
-    # Step 1 & 2 — Retrieve + Format
     chunks, context = retrieve_and_format(
         query=question,
         repo_name=repo_name,
@@ -89,7 +66,6 @@ def query_repo(
             "context": "",
         }
 
-    # Step 3 — Build prompt
     prompt = f"""The user is asking about the '{repo_name}' GitHub repository.
 
 Here are the most relevant code snippets I found:
@@ -102,11 +78,9 @@ User Question: {question}
 
 Please answer based on the code context above."""
 
-    # Step 4 — Call LLM
-    print(f"🤖 Sending to {model or OLLAMA_MODEL}...")
-    answer = call_ollama(prompt, model=model)
+    print(f"🤖 Sending to Groq llama-3.1-8b-instant...")
+    answer = call_groq(prompt)
 
-    # Step 5 — Return result
     sources = [{
         "file":     c["relative_path"],
         "type":     c["chunk_type"],
@@ -129,13 +103,7 @@ def query_repo_stream(
     k: int = 5,
     model: str = None,
 ):
-    """
-    Streaming version — yields text tokens as LLM generates them.
-    Used by Streamlit frontend for live typing effect.
-    """
-    model = model or OLLAMA_MODEL
-
-    print(f"🔍 Retrieving context for: '{question}'")
+    """Streaming version using Groq."""
     chunks, context = retrieve_and_format(query=question, repo_name=repo_name, k=k)
 
     if not chunks:
@@ -154,16 +122,17 @@ User Question: {question}
 
 Please answer based on the code context above."""
 
-    stream = ollama.chat(
-        model=model,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": prompt},
-        ],
-        stream=True,
+    llm = ChatGroq(
+        model="llama-3.1-8b-instant",
+        api_key=GROQ_API_KEY,
+        temperature=0.1,
     )
 
-    for chunk in stream:
-        token = chunk["message"]["content"]
-        if token:
-            yield token
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": prompt},
+    ]
+
+    for chunk in llm.stream(messages):
+        if chunk.content:
+            yield chunk.content
