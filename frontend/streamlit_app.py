@@ -270,18 +270,18 @@ html, body, [class*="css"] {
 
 /* ── Sidebar action buttons — green ── */
 [data-testid="stSidebar"] .stButton button {
-    background: linear-gradient(135deg, var(--accent-green), #00cc6a) !important;
-    color: #0a0a0f !important;
-    border: none !important;
-    font-weight: 700 !important;
+    background: var(--bg-card) !important;
+    color: var(--accent-blue) !important;
+    border: 1px solid rgba(68,136,255,0.3) !important;
+    font-weight: 600 !important;
     text-align: center !important;
 }
 
 [data-testid="stSidebar"] .stButton button:hover {
+    background: rgba(68,136,255,0.1) !important;
+    border-color: var(--accent-blue) !important;
+    color: var(--text-primary) !important;
     transform: translateY(-1px) !important;
-    box-shadow: 0 4px 20px rgba(0,255,136,0.25) !important;
-    background: linear-gradient(135deg, var(--accent-green), #00cc6a) !important;
-    color: #0a0a0f !important;
 }
 
 /* ── Send button — green ── */
@@ -364,14 +364,27 @@ def ingest_repo_direct(github_url: str, force: bool = False):
 
 
 def chat_direct(question: str, repo_name: str, use_agent: bool = True):
-    if use_agent:
-        from app.agents.agent_controller import run_agent
-        answer = run_agent(question=question, repo_name=repo_name)
-        return {"answer": answer, "sources": [], "mode": "agent"}
-    else:
-        from app.llm.llm_engine import query_repo
-        result = query_repo(question=question, repo_name=repo_name, k=5)
-        return result
+    try:
+        if use_agent:
+            try:
+                from app.agents.agent_controller import run_agent
+                answer = run_agent(question=question, repo_name=repo_name)
+                return {"answer": answer, "sources": [], "mode": "agent"}
+            except Exception as agent_error:
+                print(f"⚠️ Agent failed: {agent_error}, falling back to RAG...")
+                from app.llm.llm_engine import query_repo
+                result = query_repo(question=question, repo_name=repo_name, k=5)
+                return result
+        else:
+            from app.llm.llm_engine import query_repo
+            result = query_repo(question=question, repo_name=repo_name, k=5)
+            return result
+    except Exception as e:
+        return {
+            "answer": f"⚠️ Something went wrong: {str(e)}\n\nPlease try rephrasing your question or try again.",
+            "sources": [],
+            "mode": "error",
+        }
 
 
 def get_indexed_repos_direct():
