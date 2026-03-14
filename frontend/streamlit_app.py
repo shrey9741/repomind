@@ -141,6 +141,7 @@ html, body, [class*="css"] {
     margin-right: 3rem;
     font-size: 0.92rem;
     line-height: 1.6;
+    position: relative;
 }
 
 .msg-ai::before {
@@ -152,6 +153,59 @@ html, body, [class*="css"] {
     display: block;
     margin-bottom: 6px;
     font-weight: 700;
+}
+
+/* ── Typing animation ── */
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.msg-ai {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, rgba(0,255,136,0.06), rgba(0,255,136,0.02));
+    border: 1px solid rgba(0,255,136,0.15);
+    border-radius: 16px 16px 16px 4px;
+    margin: 8px 0;
+    margin-right: 3rem;
+}
+
+.typing-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    animation: blink 1.2s infinite;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* ── Response time badge ── */
+.response-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.62rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-muted);
+    margin-top: 6px;
+    padding: 2px 8px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 20px;
+    border: 1px solid var(--border);
 }
 
 .source-chip {
@@ -234,6 +288,18 @@ html, body, [class*="css"] {
     line-height: 1.4;
 }
 
+/* ── Mobile responsiveness ── */
+@media (max-width: 768px) {
+    .msg-user { margin-left: 0.5rem !important; }
+    .msg-ai { margin-right: 0.5rem !important; }
+    .welcome-title { font-size: 1.4rem !important; }
+    .suggestion-grid { grid-template-columns: 1fr !important; }
+    .repomind-logo { font-size: 1.4rem !important; }
+    .block-container { padding: 0.5rem !important; }
+    .metric-card { padding: 8px 10px !important; }
+    .metric-value { font-size: 1.1rem !important; }
+}
+
 .stTextInput input, .stTextArea textarea {
     background: var(--bg-input) !important;
     border: 1px solid var(--border) !important;
@@ -248,7 +314,7 @@ html, body, [class*="css"] {
     box-shadow: 0 0 0 2px rgba(0,255,136,0.1) !important;
 }
 
-/* ── All buttons default — dark card style ── */
+/* ── All buttons default ── */
 .stButton button {
     background: var(--bg-card) !important;
     color: var(--text-secondary) !important;
@@ -268,7 +334,7 @@ html, body, [class*="css"] {
     background: rgba(0,255,136,0.05) !important;
 }
 
-/* ── Sidebar action buttons — green ── */
+/* ── Sidebar buttons ── */
 [data-testid="stSidebar"] .stButton button {
     background: var(--bg-card) !important;
     color: var(--accent-blue) !important;
@@ -284,7 +350,7 @@ html, body, [class*="css"] {
     transform: translateY(-1px) !important;
 }
 
-/* ── Send button — green ── */
+/* ── Send button ── */
 div[data-testid="column"]:last-child .stButton button {
     background: linear-gradient(135deg, var(--accent-green), #00cc6a) !important;
     color: #0a0a0f !important;
@@ -322,7 +388,7 @@ hr { border-color: var(--border) !important; margin: 1rem 0 !important; }
 """, unsafe_allow_html=True)
 
 
-# ─── Core Functions (Direct — No FastAPI) ────────────────────────────────────
+# ─── Core Functions ───────────────────────────────────────────────────────────
 @st.cache_resource
 def get_embedding_model():
     from sentence_transformers import SentenceTransformer
@@ -566,7 +632,10 @@ else:
             if msg["role"] == "user":
                 st.markdown(f'<div class="msg-user">{msg["content"]}</div>', unsafe_allow_html=True)
             else:
-                st.markdown(f'<div class="msg-ai">{msg["content"]}</div>', unsafe_allow_html=True)
+                # Response time badge
+                response_time = msg.get("response_time", None)
+                time_badge = f'<div class="response-time">⚡ {response_time:.1f}s</div>' if response_time else ""
+                st.markdown(f'<div class="msg-ai">{msg["content"]}{time_badge}</div>', unsafe_allow_html=True)
                 if msg.get("sources"):
                     chips = "".join([
                         f'<span class="source-chip">📄 {s["file"]}</span>'
@@ -587,12 +656,27 @@ else:
                 with cols[i % 2]:
                     if st.button(suggestion, key=f"sug_{i}", use_container_width=True):
                         st.session_state.messages.append({"role": "user", "content": suggestion})
-                        with st.spinner("🧠 Thinking..."):
-                            result = chat_direct(suggestion, selected, st.session_state.use_agent)
+
+                        # Typing animation placeholder
+                        typing_placeholder = st.empty()
+                        typing_placeholder.markdown("""
+                        <div class="typing-indicator">
+                            <span class="typing-dot"></span>
+                            <span class="typing-dot"></span>
+                            <span class="typing-dot"></span>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                        start_time = time.time()
+                        result = chat_direct(suggestion, selected, st.session_state.use_agent)
+                        elapsed = time.time() - start_time
+
+                        typing_placeholder.empty()
                         st.session_state.messages.append({
                             "role": "assistant",
                             "content": result.get("answer", "No answer"),
                             "sources": result.get("sources", []),
+                            "response_time": elapsed,
                         })
                         st.rerun()
 
@@ -610,12 +694,27 @@ else:
 
         if send and question:
             st.session_state.messages.append({"role": "user", "content": question})
-            with st.spinner("🧠 RepoMind is thinking..."):
-                result = chat_direct(question, selected, st.session_state.use_agent)
+
+            # Typing animation
+            typing_placeholder = st.empty()
+            typing_placeholder.markdown("""
+            <div class="typing-indicator">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            start_time = time.time()
+            result = chat_direct(question, selected, st.session_state.use_agent)
+            elapsed = time.time() - start_time
+
+            typing_placeholder.empty()
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": result.get("answer", "No answer"),
                 "sources": result.get("sources", []),
+                "response_time": elapsed,
             })
             st.rerun()
 
