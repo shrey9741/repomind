@@ -57,6 +57,35 @@ html, body, [class*="css"] {
 
 [data-testid="stSidebar"] * { color: var(--text-primary) !important; }
 
+/* ── Sidebar Toggle Fix ── */
+[data-testid="collapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 0 8px 8px 0 !important;
+    color: var(--accent-green) !important;
+    position: fixed !important;
+    top: 1rem !important;
+    left: 0 !important;
+    z-index: 999999 !important;
+    width: 2rem !important;
+    height: 2rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+}
+
+[data-testid="collapsedControl"]:hover {
+    border-color: var(--accent-green) !important;
+    background: rgba(0,255,136,0.1) !important;
+}
+
+[data-testid="collapsedControl"] svg {
+    fill: var(--accent-green) !important;
+    color: var(--accent-green) !important;
+}
+
 .repomind-logo {
     font-family: 'Syne', sans-serif;
     font-weight: 800;
@@ -166,9 +195,7 @@ html, body, [class*="css"] {
     to { opacity: 1; transform: translateY(0); }
 }
 
-.msg-ai {
-    animation: fadeIn 0.3s ease-out;
-}
+.msg-ai { animation: fadeIn 0.3s ease-out; }
 
 .typing-indicator {
     display: inline-flex;
@@ -193,7 +220,6 @@ html, body, [class*="css"] {
 .typing-dot:nth-child(2) { animation-delay: 0.2s; }
 .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
-/* ── Response time badge ── */
 .response-time {
     display: inline-flex;
     align-items: center;
@@ -298,6 +324,15 @@ html, body, [class*="css"] {
     .block-container { padding: 0.5rem !important; }
     .metric-card { padding: 8px 10px !important; }
     .metric-value { font-size: 1.1rem !important; }
+
+    /* Mobile sidebar toggle always visible */
+    [data-testid="collapsedControl"] {
+        display: flex !important;
+        position: fixed !important;
+        top: 0.5rem !important;
+        left: 0 !important;
+        z-index: 999999 !important;
+    }
 }
 
 .stTextInput input, .stTextArea textarea {
@@ -632,7 +667,6 @@ else:
             if msg["role"] == "user":
                 st.markdown(f'<div class="msg-user">{msg["content"]}</div>', unsafe_allow_html=True)
             else:
-                # Response time badge
                 response_time = msg.get("response_time", None)
                 time_badge = f'<div class="response-time">⚡ {response_time:.1f}s</div>' if response_time else ""
                 st.markdown(f'<div class="msg-ai">{msg["content"]}{time_badge}</div>', unsafe_allow_html=True)
@@ -657,7 +691,6 @@ else:
                     if st.button(suggestion, key=f"sug_{i}", use_container_width=True):
                         st.session_state.messages.append({"role": "user", "content": suggestion})
 
-                        # Typing animation placeholder
                         typing_placeholder = st.empty()
                         typing_placeholder.markdown("""
                         <div class="typing-indicator">
@@ -695,7 +728,6 @@ else:
         if send and question:
             st.session_state.messages.append({"role": "user", "content": question})
 
-            # Typing animation
             typing_placeholder = st.empty()
             typing_placeholder.markdown("""
             <div class="typing-indicator">
