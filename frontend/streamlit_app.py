@@ -70,21 +70,26 @@ html, body, [class*="css"] {
 
 [data-testid="stSidebar"] * { color: var(--text-primary) !important; }
 
-/* Force sidebar toggle ALWAYS visible */
+/* Force sidebar toggle ALWAYS visible — all possible Streamlit selectors */
 [data-testid="collapsedControl"],
-button[data-testid="collapsedControl"] {
+button[data-testid="collapsedControl"],
+[data-testid="stSidebarCollapsedControl"],
+.st-emotion-cache-collapsedControl,
+section[data-testid="stSidebarContent"] ~ button,
+div[class*="collapsedControl"] {
     display: flex !important;
     visibility: visible !important;
     opacity: 1 !important;
-    pointer-events: auto !important;
+    pointer-events: all !important;
     position: fixed !important;
-    top: 1.2rem !important;
+    top: 1rem !important;
     left: 0 !important;
     z-index: 9999999 !important;
-    width: 2.2rem !important;
-    height: 2.2rem !important;
-    min-width: 2.2rem !important;
-    min-height: 2.2rem !important;
+    width: 2.4rem !important;
+    height: 2.4rem !important;
+    min-width: 2.4rem !important;
+    min-height: 2.4rem !important;
+    max-width: 2.4rem !important;
     background: var(--bg-card) !important;
     border: 1px solid var(--accent-green) !important;
     border-left: none !important;
@@ -92,21 +97,32 @@ button[data-testid="collapsedControl"] {
     cursor: pointer !important;
     align-items: center !important;
     justify-content: center !important;
+    box-shadow: 3px 0 16px rgba(13,255,176,0.25) !important;
     transition: all 0.2s ease !important;
-    box-shadow: 3px 0 12px rgba(13,255,176,0.2) !important;
 }
 
-[data-testid="collapsedControl"]:hover {
+[data-testid="collapsedControl"]:hover,
+button[data-testid="collapsedControl"]:hover {
     background: rgba(13,255,176,0.12) !important;
-    box-shadow: 3px 0 18px rgba(13,255,176,0.35) !important;
-    width: 2.6rem !important;
+    box-shadow: 3px 0 20px rgba(13,255,176,0.4) !important;
 }
 
 [data-testid="collapsedControl"] svg,
-[data-testid="collapsedControl"] * {
+[data-testid="collapsedControl"] *,
+button[data-testid="collapsedControl"] svg {
     fill: var(--accent-green) !important;
     color: var(--accent-green) !important;
     stroke: var(--accent-green) !important;
+}
+
+/* Also target the expand arrow that Streamlit uses */
+[data-testid="stSidebar"][aria-expanded="false"] + div button,
+button[aria-label="Open sidebar"],
+button[title="Open sidebar"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: all !important;
 }
 
 /* ═══════════════════════════════════════════════
@@ -737,56 +753,7 @@ hr { border-color: var(--border) !important; margin: 1rem 0 !important; }
 }
 </style>
 
-<script>
-(function sidebarManager() {
-    function isSidebarOpen() {
-        const sidebar = document.querySelector('[data-testid="stSidebar"]');
-        if (!sidebar) return false;
-        const rect = sidebar.getBoundingClientRect();
-        return rect.width > 50;
-    }
 
-    function openSidebar() {
-        const toggle = document.querySelector('[data-testid="collapsedControl"]');
-        if (toggle && !isSidebarOpen()) {
-            toggle.click();
-        }
-    }
-
-    function fixToggle() {
-        const btns = document.querySelectorAll('[data-testid="collapsedControl"]');
-        btns.forEach(btn => {
-            btn.style.setProperty('display', 'flex', 'important');
-            btn.style.setProperty('visibility', 'visible', 'important');
-            btn.style.setProperty('opacity', '1', 'important');
-            btn.style.setProperty('pointer-events', 'auto', 'important');
-            btn.style.setProperty('z-index', '9999999', 'important');
-            btn.style.setProperty('position', 'fixed', 'important');
-            btn.style.setProperty('top', '1.2rem', 'important');
-            btn.style.setProperty('left', '0', 'important');
-        });
-    }
-
-    // Try opening sidebar after page loads
-    function init() {
-        fixToggle();
-        setTimeout(() => { openSidebar(); fixToggle(); }, 300);
-        setTimeout(() => { openSidebar(); fixToggle(); }, 800);
-        setTimeout(() => { openSidebar(); fixToggle(); }, 1500);
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-
-    // Keep toggle always visible with observer
-    const obs = new MutationObserver(() => { fixToggle(); });
-    obs.observe(document.body, { childList: true, subtree: true });
-    setInterval(fixToggle, 1000);
-})();
-</script>
 """, unsafe_allow_html=True)
 
 
@@ -890,23 +857,6 @@ if "selected_repo" not in st.session_state:
     st.session_state.selected_repo = None
 if "use_agent" not in st.session_state:
     st.session_state.use_agent = True
-if "sidebar_opened" not in st.session_state:
-    st.session_state.sidebar_opened = False
-
-# Force sidebar open on first load
-if not st.session_state.sidebar_opened:
-    st.session_state.sidebar_opened = True
-    st.markdown("""
-    <script>
-    function forceSidebarOpen() {
-        const sidebar = document.querySelector('[data-testid="stSidebar"]');
-        const toggle = document.querySelector('[data-testid="collapsedControl"]');
-        const isCollapsed = !sidebar || sidebar.getBoundingClientRect().width < 50;
-        if (isCollapsed && toggle) { toggle.click(); }
-    }
-    [100, 300, 600, 1000, 2000].forEach(t => setTimeout(forceSidebarOpen, t));
-    </script>
-    """, unsafe_allow_html=True)
 
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
@@ -1007,6 +957,30 @@ with st.sidebar:
 
 
 # ─── Main Content ─────────────────────────────────────────────────────────────
+
+# Sidebar open button — always visible at top, purely Streamlit-native
+with st.container():
+    top_col1, top_col2 = st.columns([1, 11])
+    with top_col1:
+        if st.button("☰", help="Open sidebar", key="open_sidebar_btn"):
+            st.session_state._sidebar_force = True
+
+st.markdown("""
+<style>
+/* Style the ☰ button */
+div[data-testid="column"]:first-child button[kind="secondary"] {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-bright) !important;
+    border-radius: 10px !important;
+    color: var(--accent-green) !important;
+    font-size: 1.1rem !important;
+    padding: 4px 10px !important;
+    width: auto !important;
+    min-width: 40px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 selected = st.session_state.selected_repo
 
 if selected is None:
