@@ -738,18 +738,53 @@ hr { border-color: var(--border) !important; margin: 1rem 0 !important; }
 </style>
 
 <script>
-// Ensure sidebar toggle is always accessible
-(function keepToggleVisible() {
+(function sidebarManager() {
+    function isSidebarOpen() {
+        const sidebar = document.querySelector('[data-testid="stSidebar"]');
+        if (!sidebar) return false;
+        const rect = sidebar.getBoundingClientRect();
+        return rect.width > 50;
+    }
+
+    function openSidebar() {
+        const toggle = document.querySelector('[data-testid="collapsedControl"]');
+        if (toggle && !isSidebarOpen()) {
+            toggle.click();
+        }
+    }
+
     function fixToggle() {
         const btns = document.querySelectorAll('[data-testid="collapsedControl"]');
         btns.forEach(btn => {
-            btn.style.cssText += ';display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;z-index:9999999!important;';
+            btn.style.setProperty('display', 'flex', 'important');
+            btn.style.setProperty('visibility', 'visible', 'important');
+            btn.style.setProperty('opacity', '1', 'important');
+            btn.style.setProperty('pointer-events', 'auto', 'important');
+            btn.style.setProperty('z-index', '9999999', 'important');
+            btn.style.setProperty('position', 'fixed', 'important');
+            btn.style.setProperty('top', '1.2rem', 'important');
+            btn.style.setProperty('left', '0', 'important');
         });
     }
-    fixToggle();
-    const obs = new MutationObserver(fixToggle);
-    obs.observe(document.body, { childList: true, subtree: true, attributes: true });
-    setInterval(fixToggle, 800);
+
+    // Try opening sidebar after page loads
+    function init() {
+        fixToggle();
+        setTimeout(() => { openSidebar(); fixToggle(); }, 300);
+        setTimeout(() => { openSidebar(); fixToggle(); }, 800);
+        setTimeout(() => { openSidebar(); fixToggle(); }, 1500);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+    // Keep toggle always visible with observer
+    const obs = new MutationObserver(() => { fixToggle(); });
+    obs.observe(document.body, { childList: true, subtree: true });
+    setInterval(fixToggle, 1000);
 })();
 </script>
 """, unsafe_allow_html=True)
@@ -855,6 +890,23 @@ if "selected_repo" not in st.session_state:
     st.session_state.selected_repo = None
 if "use_agent" not in st.session_state:
     st.session_state.use_agent = True
+if "sidebar_opened" not in st.session_state:
+    st.session_state.sidebar_opened = False
+
+# Force sidebar open on first load
+if not st.session_state.sidebar_opened:
+    st.session_state.sidebar_opened = True
+    st.markdown("""
+    <script>
+    function forceSidebarOpen() {
+        const sidebar = document.querySelector('[data-testid="stSidebar"]');
+        const toggle = document.querySelector('[data-testid="collapsedControl"]');
+        const isCollapsed = !sidebar || sidebar.getBoundingClientRect().width < 50;
+        if (isCollapsed && toggle) { toggle.click(); }
+    }
+    [100, 300, 600, 1000, 2000].forEach(t => setTimeout(forceSidebarOpen, t));
+    </script>
+    """, unsafe_allow_html=True)
 
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
