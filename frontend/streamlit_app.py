@@ -958,45 +958,7 @@ with st.sidebar:
 
 # ─── Main Content ─────────────────────────────────────────────────────────────
 
-# Sidebar toggle button — small, fixed position top-left
-st.markdown("""
-<style>
-/* Hide the default Streamlit sidebar toggle area to avoid duplicate */
-.sidebar-toggle-btn {
-    position: fixed !important;
-    top: 0.6rem !important;
-    left: 0.5rem !important;
-    z-index: 999999 !important;
-}
-.sidebar-toggle-btn button {
-    background: rgba(13,255,176,0.08) !important;
-    border: 1px solid rgba(13,255,176,0.3) !important;
-    border-radius: 8px !important;
-    color: var(--accent-green) !important;
-    font-size: 0.9rem !important;
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    min-height: 32px !important;
-    padding: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    cursor: pointer !important;
-    transition: all 0.2s !important;
-}
-.sidebar-toggle-btn button:hover {
-    background: rgba(13,255,176,0.18) !important;
-    border-color: var(--accent-green) !important;
-    box-shadow: 0 0 12px rgba(13,255,176,0.25) !important;
-}
-</style>
-""", unsafe_allow_html=True)
 
-with st.container():
-    st.markdown('<div class="sidebar-toggle-btn">', unsafe_allow_html=True)
-    st.button("☰", key="open_sidebar_btn", help="Toggle sidebar")
-    st.markdown('</div>', unsafe_allow_html=True)
 
 selected = st.session_state.selected_repo
 
@@ -1005,7 +967,7 @@ if selected is None:
     <div class="welcome-container">
         <span class="welcome-brain">🧠</span>
         <div class="welcome-title">Chat with any codebase</div>
-        <div class="welcome-subtitle">← Select or ingest a repository to get started</div>
+        <div class="welcome-subtitle">← Click the arrow at top-left to open the sidebar &amp; get started</div>
         <div class="suggestion-grid">
             <div class="suggestion-card">
                 <span class="suggestion-icon">🏗️</span>
