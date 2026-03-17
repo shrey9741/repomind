@@ -1,8 +1,8 @@
-import os
 from typing import List, Dict, Optional
+from langchain_groq import ChatGroq
 from app.config import GROQ_API_KEY
 from app.retrieval.retriever import retrieve_and_format
-from langchain_groq import ChatGroq
+
 
 # ─── System Prompt ────────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """You are RepoMind, an expert AI assistant that helps developers understand codebases.
@@ -23,20 +23,13 @@ Always structure your answers with:
 Be concise but thorough. Use markdown formatting for clarity."""
 
 
-# ─── Core LLM Call ───────────────────────────────────────────────────────────
-def call_groq(prompt: str) -> str:
-    """Send a prompt to Groq and return the response."""
-    llm = ChatGroq(
+# ─── Core LLM ─────────────────────────────────────────────────────────────────
+def get_llm():
+    return ChatGroq(
         model="llama-3.1-8b-instant",
         api_key=GROQ_API_KEY,
         temperature=0.1,
     )
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": prompt},
-    ]
-    response = llm.invoke(messages)
-    return response.content
 
 
 # ─── RAG Query ────────────────────────────────────────────────────────────────
@@ -66,9 +59,9 @@ def query_repo(
             "context": "",
         }
 
-    prompt = f"""The user is asking about the '{repo_name}' GitHub repository.
+    prompt = f"""You are RepoMind, an expert AI assistant analyzing the '{repo_name}' GitHub repository.
 
-Here are the most relevant code snippets I found:
+Here are the most relevant code snippets:
 
 {context}
 
@@ -78,8 +71,14 @@ User Question: {question}
 
 Please answer based on the code context above."""
 
-    print(f"🤖 Sending to Groq llama-3.1-8b-instant...")
-    answer = call_groq(prompt)
+    print(f"🤖 Sending to Groq...")
+    llm = get_llm()
+    from langchain_core.messages import HumanMessage, SystemMessage
+    response = llm.invoke([
+        SystemMessage(content=SYSTEM_PROMPT),
+        HumanMessage(content=prompt),
+    ])
+    answer = response.content
 
     sources = [{
         "file":     c["relative_path"],
@@ -103,7 +102,7 @@ def query_repo_stream(
     k: int = 5,
     model: str = None,
 ):
-    """Streaming version using Groq."""
+    """Streaming version for Streamlit frontend."""
     chunks, context = retrieve_and_format(query=question, repo_name=repo_name, k=k)
 
     if not chunks:
@@ -112,7 +111,7 @@ def query_repo_stream(
 
     prompt = f"""The user is asking about the '{repo_name}' GitHub repository.
 
-Here are the most relevant code snippets I found:
+Here are the most relevant code snippets:
 
 {context}
 
@@ -122,17 +121,7 @@ User Question: {question}
 
 Please answer based on the code context above."""
 
-    llm = ChatGroq(
-        model="llama-3.1-8b-instant",
-        api_key=GROQ_API_KEY,
-        temperature=0.1,
-    )
-
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": prompt},
-    ]
-
-    for chunk in llm.stream(messages):
+    llm = get_llm()
+    for chunk in llm.stream(prompt):
         if chunk.content:
             yield chunk.content

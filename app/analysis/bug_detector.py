@@ -3,7 +3,6 @@ from app.retrieval.retriever import retrieve
 from app.config import GROQ_API_KEY
 from langchain_groq import ChatGroq
 
-
 # Common bug patterns to check
 BUG_PATTERNS = [
     "bare except clauses that catch all exceptions",
@@ -16,11 +15,8 @@ BUG_PATTERNS = [
     "deprecated function usage",
 ]
 
-
 def detect_bugs_in_chunks(repo_name: str, k: int = 8) -> Dict:
-    """
-    Use AI to detect potential bugs in the most relevant code chunks.
-    """
+    """Use AI to detect potential bugs in the most relevant code chunks."""
     llm = ChatGroq(
         model="llama-3.1-8b-instant",
         api_key=GROQ_API_KEY,
@@ -82,7 +78,6 @@ If the code looks clean, say so. Be specific and concise."""
         "files_analyzed": len(unique_chunks),
         "findings":       response.content,
     }
-
 
 def format_bug_report(report: Dict) -> str:
     """Format bug detection results."""

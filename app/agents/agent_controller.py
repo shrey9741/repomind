@@ -1,4 +1,3 @@
-import os
 from typing import TypedDict, Annotated, List
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
@@ -6,8 +5,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode, tools_condition
 import operator
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-
+from app.config import GROQ_API_KEY
 from app.agents.tools import (
     search_codebase,
     read_file,
@@ -62,8 +60,10 @@ def build_agent(repo_name: str):
         temperature=0.1,
     )
 
+    # Bind tools to LLM
     llm_with_tools = llm.bind_tools(TOOLS)
 
+    # ─── Node: Agent reasoning ────────────────────────────────────────────
     def agent_node(state: AgentState):
         system_msg = SystemMessage(
             content=AGENT_SYSTEM_PROMPT.format(repo_name=state["repo_name"])
@@ -72,6 +72,7 @@ def build_agent(repo_name: str):
         response = llm_with_tools.invoke(messages)
         return {"messages": [response]}
 
+    # ─── Build Graph ──────────────────────────────────────────────────────
     tool_node = ToolNode(TOOLS)
 
     graph = StateGraph(AgentState)
