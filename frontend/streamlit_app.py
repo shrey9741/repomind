@@ -886,27 +886,37 @@ with st.sidebar:
         force_reclone = st.checkbox("↺", help="Force re-clone")
 
     if ingest_btn and github_url:
-        progress = st.progress(0)
-        status_text = st.empty()
+        progress_container = st.empty()
+        status_container = st.empty()
         stage_map = {
             "cloning": 20, "extracting": 40,
             "chunking": 60, "indexing": 80, "complete": 100
         }
 
+        final_status = None
+        final_msg = ""
+
         for update in ingest_repo_direct(github_url, force=force_reclone):
             status = update.get("status", "")
             msg = update.get("message", "")
-            progress.progress(stage_map.get(status, 10))
-            status_text.markdown(
+            progress_container.progress(stage_map.get(status, 10))
+            status_container.markdown(
                 f'<div class="section-label">{msg}</div>',
                 unsafe_allow_html=True
             )
-            if status == "complete":
-                st.success(f"✅ {msg}")
-                st.rerun()
-            elif status == "already_indexed":
-                st.success("✅ Already indexed!")
-                st.rerun()
+            final_status = status
+            final_msg = msg
+
+        # Clear progress UI before rerun
+        progress_container.empty()
+        status_container.empty()
+
+        if final_status == "complete":
+            st.success(f"✅ {final_msg}")
+            st.rerun()
+        elif final_status == "already_indexed":
+            st.success("✅ Already indexed!")
+            st.rerun()
 
     st.markdown("---")
 
